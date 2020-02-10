@@ -105,6 +105,7 @@ process_vip({{Key, riak_dt_orswot}, Value}) ->
 -spec(process_vip(key(), [backend()]) -> [{key(), [backend()]}]).
 process_vip({Protocol, {name, {Label, FwName}}, Port}, AllBEs) ->
     CategorizedBEs = categorize_backends(AllBEs),
+    ?LOG_NOTICE("CATEGORY BACKENDS: ~p -> ~p", [AllBEs, CategorizedBEs]),
     lists:map(fun ({Family, BEs}) ->
         IP = maybe_add_mapping(Family, FwName, Label),
         {{Protocol, IP, Port}, BEs}
