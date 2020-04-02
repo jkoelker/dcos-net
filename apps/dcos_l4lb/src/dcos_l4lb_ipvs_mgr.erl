@@ -16,7 +16,7 @@
 
 -export([get_dests/3,
          add_dest/8,
-         remove_dest/7,
+         remove_dest/8,
          get_services/2,
          add_service/5,
          remove_service/5,
@@ -103,9 +103,10 @@ get_dests(Pid, Service, Namespace) ->
 -spec(remove_dest(Pid :: pid(), ServiceIP :: inet:ip_address(),
                   ServicePort :: inet:port_number(),
                   DestIP :: inet:ip_address(), DestPort :: inet:port_number(),
-                  Protocol :: protocol(), Namespace :: term()) -> ok | error).
-remove_dest(Pid, ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace) ->
-    gen_server:call(Pid, {remove_dest, ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace}).
+                  Protocol :: protocol(), Namespace :: term(),
+                  Weight :: backend_weight()) -> ok | error).
+remove_dest(Pid, ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, Weight) ->
+    gen_server:call(Pid, {remove_dest, ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, Weight}).
 
 -spec(add_dest(Pid :: pid(), ServiceIP :: inet:ip_address(), ServicePort :: inet:port_number(),
                DestIP :: inet:ip_address(), DestPort :: inet:port_number(),
@@ -150,8 +151,8 @@ handle_call({get_dests, Service, Namespace}, _From, State) ->
 handle_call({add_dest, ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, Weight}, _From, State) ->
     Reply = handle_add_dest(ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, State, Weight),
     {reply, Reply, State};
-handle_call({remove_dest, ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace}, _From, State) ->
-    Reply = handle_remove_dest(ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, State),
+handle_call({remove_dest, ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, Weight}, _From, State) ->
+    Reply = handle_remove_dest(ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, State, Weight),
     {reply, Reply, State};
 handle_call({add_netns, UpdateValue}, _From, State0) ->
     {Reply, State1} = handle_add_netns(UpdateValue, State0),
@@ -291,11 +292,13 @@ handle_add_dest(Pid, Service, IP, Port, Family, Weight) ->
 
 -spec(handle_remove_dest(ServiceIP :: inet:ip_address(), ServicePort :: inet:port_number(),
                          DestIP :: inet:ip_address(), DestPort :: inet:port_number(),
-                         Protocol :: protocol(), Namespace :: term(), State :: state()) -> ok | error).
-handle_remove_dest(ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, State) ->
+                         Protocol :: protocol(), Namespace :: term(), State :: state(),
+                         Weight :: backend_weight()) -> ok | error).
+handle_remove_dest(ServiceIP, ServicePort, DestIP, DestPort, Protocol, Namespace, State,
+                   Weight) ->
     Protocol1 = netlink_codec:protocol_to_int(Protocol),
     Service = ip_to_address(ServiceIP) ++ [{port, ServicePort}, {protocol, Protocol1}],
-    Dest = ip_to_address(DestIP) ++ [{port, DestPort}],
+    Dest = ip_to_address(DestIP) ++ [{port, DestPort}, {weight, Weight}],
     handle_remove_dest(Service, Dest, Namespace, State).
 
 -spec(handle_remove_dest(Service :: service(), Dest :: dest(), Namespace :: term(), State :: state()) -> ok | error).

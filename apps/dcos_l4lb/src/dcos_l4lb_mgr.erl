@@ -386,14 +386,16 @@ vip_mod(IPVSMgr, Namespace, {{Protocol, IP, Port}, ToAdd, ToDel}) ->
     end, ToAdd),
     lists:foreach(fun (BE) ->
         case BE of
-            {BEIP, BEPort, _BEWeight} -> dcos_l4lb_ipvs_mgr:remove_dest(
+            {BEIP, BEPort, BEWeight} -> dcos_l4lb_ipvs_mgr:remove_dest(
                                            IPVSMgr, IP, Port,
                                            BEIP, BEPort,
-                                           Protocol, Namespace);
+                                           Protocol, Namespace,
+                                           BEWeight);
             {BEIP, BEPort} -> dcos_l4lb_ipvs_mgr:remove_dest(
                                 IPVSMgr, IP, Port,
                                 BEIP, BEPort,
-                                Protocol, Namespace)
+                                Protocol, Namespace,
+                                1)
         end
     end, ToDel).
 
